@@ -1,0 +1,278 @@
+# CLAUDE.md Template for Generated Projects
+
+This is a template. Replace `{ProjectName}` with the actual project name when generating.
+
+---
+
+# {ProjectName}
+
+## Project Overview
+
+{Brief description from user input}
+
+## Tech Stack
+
+### Backend
+- **Framework**: ASP.NET Core 8 Web API
+- **ORM**: Entity Framework Core
+- **Database**: {SQL Server | PostgreSQL}
+- **CQRS/Mediator**: MediatR
+- **Validation**: FluentValidation
+- **Background Jobs**: TickerQ
+- **Real-time**: SignalR
+
+### Frontend
+- **Framework**: React 19 with TypeScript
+- **Build Tool**: Vite
+- **Data Fetching**: TanStack Query (React Query)
+- **Routing**: React Router v7
+
+### Testing
+- **Backend**: xUnit 3.0, Shouldly, NSubstitute
+- **Frontend**: Vitest, React Testing Library
+
+## Architecture
+
+This project follows **Clean Architecture** with these layers:
+
+```
+Domain → Application → Infrastructure → API/Web
+```
+
+### Layer Responsibilities
+
+| Layer | Location | Purpose | Dependencies |
+|-------|----------|---------|--------------|
+| **Domain** | `src/server/{ProjectName}.Domain` | Entities, Value Objects, Domain Events | None |
+| **Application** | `src/server/{ProjectName}.Application` | Use Cases, Commands, Queries, DTOs | Domain |
+| **Infrastructure** | `src/server/{ProjectName}.Infrastructure` | EF Core, External Services, Repositories | Application, Domain |
+| **API** | `src/server/{ProjectName}.Api` | Controllers, Middleware, DI Config | All server layers |
+| **Client** | `src/client` | React Frontend | API (via HTTP) |
+
+## Key Patterns
+
+### Repository Pattern
+All data access goes through `IRepository<T>`. Do not inject `DbContext` directly into handlers.
+
+```csharp
+// ✅ Correct
+public class MyHandler(IRepository<Product> repo) { }
+
+// ❌ Wrong
+public class MyHandler(AppDbContext db) { }
+```
+
+### Expression-Based Filtering
+Use lambda expressions for queries:
+
+```csharp
+// Simple filter
+var activeProducts = await _repo.ListAsync(
+    filter: x => x.IsActive);
+
+// With ordering and paging
+var products = await _repo.ListAsync(
+    filter: x => x.CategoryId == categoryId && x.Price > 100,
+    orderBy: q => q.OrderByDescending(x => x.CreatedAt),
+    skip: (page - 1) * pageSize,
+    take: pageSize);
+
+// With includes
+var product = await _repo.FirstOrDefaultAsync(
+    filter: x => x.Id == id,
+    include: q => q.Include(x => x.Category).Include(x => x.Tags));
+```
+
+### MediatR Commands & Queries
+- **Commands** - Mutations (Create, Update, Delete)
+- **Queries** - Read operations
+
+All operations go through MediatR. Controllers should only dispatch commands/queries.
+
+```csharp
+// ✅ Correct
+[HttpPost]
+public async Task<IActionResult> Create(CreateProductCommand cmd)
+    => Ok(await _mediator.Send(cmd));
+
+// ❌ Wrong - business logic in controller
+[HttpPost]
+public async Task<IActionResult> Create(CreateProductDto dto)
+{
+    var product = new Product { ... };
+    await _repo.AddAsync(product);
+    return Ok();
+}
+```
+
+### Adapter Pattern for External Services
+Third-party integrations use interfaces defined in Application layer:
+
+```
+Application/Interfaces/IEmailSender.cs  (interface)
+Infrastructure/Services/Email/SendGridEmailSender.cs  (implementation)
+```
+
+## Project Structure
+
+```
+src/
+├── client/                     # React Frontend
+│   └── src/
+│       ├── api/               # API client & React Query hooks
+│       ├── components/        # Shared components
+│       ├── features/          # Feature-based components
+│       ├── hooks/             # Custom hooks
+│       ├── lib/               # Utilities
+│       ├── pages/             # Route pages
+│       └── types/             # TypeScript types
+│
+└── server/                     # ASP.NET Core Backend
+    ├── {ProjectName}.Domain/
+    │   ├── Entities/           # Domain entities
+    │   ├── ValueObjects/       # Value objects
+    │   ├── Events/             # Domain events
+    │   └── Interfaces/         # Domain service interfaces
+    │
+    ├── {ProjectName}.Application/
+    │   ├── Common/
+    │   │   ├── Behaviors/      # MediatR pipeline behaviors
+    │   │   ├── Interfaces/     # Application service interfaces
+    │   │   └── Exceptions/     # Application exceptions
+    │   └── Features/
+    │       └── {Feature}/
+    │           ├── Commands/   # Write operations
+    │           ├── Queries/    # Read operations
+    │           └── DTOs/       # Data transfer objects
+    │
+    ├── {ProjectName}.Infrastructure/
+    │   ├── Persistence/
+    │   │   ├── Configurations/ # EF Core entity configs
+    │   │   └── Repositories/   # Repository implementations
+    │   └── Services/           # External service adapters
+    │
+    └── {ProjectName}.Api/
+        ├── Controllers/        # API endpoints
+        ├── Hubs/              # SignalR hubs
+        └── Middleware/        # Custom middleware
+
+tests/
+├── server/                     # Backend tests
+│   ├── {ProjectName}.Domain.Tests/
+│   ├── {ProjectName}.Application.Tests/
+│   ├── {ProjectName}.Infrastructure.Tests/
+│   └── {ProjectName}.Api.Tests/
+└── client/                     # Frontend tests (Vitest)
+```
+
+## Development Commands
+
+### Backend
+```bash
+# Run API
+dotnet run --project src/server/{ProjectName}.Api
+
+# Run tests
+dotnet test
+
+# Add migration
+dotnet ef migrations add MigrationName -p src/server/{ProjectName}.Infrastructure -s src/server/{ProjectName}.Api
+
+# Update database
+dotnet ef database update -p src/server/{ProjectName}.Infrastructure -s src/server/{ProjectName}.Api
+```
+
+### Frontend
+```bash
+cd src/client
+
+# Install dependencies
+npm install
+
+# Run dev server
+npm run dev
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
+```
+
+## Code Generation Guidelines
+
+When adding new features, follow these conventions:
+
+### Adding a New Entity
+1. Create entity in `Domain/Entities/`
+2. Add EF configuration in `Infrastructure/Persistence/Configurations/`
+3. Add DTOs in `Application/Features/{Feature}/DTOs/`
+4. Create Commands & Queries in `Application/Features/{Feature}/`
+5. Add Controller in `Api/Controllers/`
+6. (Optional) Add entity-specific repository if needed
+
+### File Naming Conventions
+- Entities: `Product.cs` (singular)
+- DTOs: `ProductDto.cs`, `CreateProductDto.cs`
+- Commands: `CreateProductCommand.cs`, `CreateProductCommandHandler.cs`
+- Queries: `GetProductByIdQuery.cs`, `GetProductsListQuery.cs`
+- Validators: `CreateProductCommandValidator.cs`
+- Controllers: `ProductsController.cs` (plural)
+- Repositories: `ProductRepository.cs` (if entity-specific needed)
+
+### Testing Conventions
+- Test classes mirror source structure
+- Name: `{ClassName}Tests.cs`
+- Methods: `{Method}_{Scenario}_{ExpectedResult}`
+- Use Shouldly for assertions: `result.ShouldBe(expected)`
+- Use NSubstitute for mocking: `Substitute.For<IRepository>()`
+
+## Configuration
+
+### Connection Strings
+Update in `appsettings.json` and `appsettings.Development.json`:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database={ProjectName};..."
+  }
+}
+```
+
+### External Services
+Configure in appsettings under their respective sections:
+- `Email` - Email provider settings
+- `Storage` - File storage settings
+- `SignalR` - Real-time configuration
+
+## Common Tasks
+
+### Adding a New Feature
+Use the Claude Code command: `/project:add-feature`
+
+### Adding an Integration
+Use the Claude Code command: `/project:add-integration`
+
+### Running Background Jobs
+TickerQ jobs are in `Infrastructure/BackgroundJobs/`. Jobs auto-register via DI.
+
+## Troubleshooting
+
+### Common Issues
+
+**EF Core migrations not working**
+- Ensure you're in the solution root
+- Check that Infrastructure project references are correct
+
+**React Query cache not updating**
+- Verify query keys match between hooks
+- Check invalidation calls in mutations
+
+**SignalR connection issues**
+- Verify CORS configuration in API
+- Check WebSocket support in hosting environment
+
+---
+
+*This CLAUDE.md was generated by the project scaffolding command. Update it as your project evolves.*

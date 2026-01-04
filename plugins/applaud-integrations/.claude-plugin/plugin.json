@@ -1,0 +1,15 @@
+{
+  "name": "applaud-integrations",
+  "version": "1.0.0",
+  "description": "Third-party service integration adapters for email, SMS, storage, payments, push notifications, documents, and search",
+  "author": {
+    "name": "Applaud Technologies",
+    "url": "https://github.com/applaud-technologies"
+  },
+  "homepage": "https://github.com/applaud-technologies/applaud-technologies-skills",
+  "repository": "https://github.com/applaud-technologies/applaud-technologies-skills",
+  "license": "MIT",
+  "keywords": ["integration", "adapter", "email", "sms", "storage", "payment", "sendgrid", "stripe", "s3"],
+  "commands": "./commands/",
+  "skills": "./skills/"
+}

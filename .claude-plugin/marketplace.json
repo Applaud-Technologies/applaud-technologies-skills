@@ -1,0 +1,46 @@
+{
+  "name": "applaud-technologies-skills",
+  "owner": {
+    "name": "Applaud Technologies",
+    "email": "skills@applaud-technologies.com"
+  },
+  "metadata": {
+    "description": "Professional .NET and React project scaffolding and development tools",
+    "version": "1.0.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "applaud-core",
+      "source": "./plugins/applaud-core",
+      "description": "Core project scaffolding, feature development, and quality assurance tools",
+      "version": "1.0.0",
+      "author": {
+        "name": "Applaud Technologies",
+        "url": "https://github.com/applaud-technologies"
+      },
+      "homepage": "https://github.com/applaud-technologies/applaud-technologies-skills",
+      "repository": "https://github.com/applaud-technologies/applaud-technologies-skills",
+      "license": "MIT",
+      "keywords": [".NET", "React", "scaffolding", "CQRS", "Clean Architecture", "fullstack"],
+      "category": "productivity",
+      "tags": ["development", "project-setup", "dotnet", "react"]
+    },
+    {
+      "name": "applaud-integrations",
+      "source": "./plugins/applaud-integrations",
+      "description": "Third-party service integration adapters (email, SMS, storage, payments, etc.)",
+      "version": "1.0.0",
+      "author": {
+        "name": "Applaud Technologies",
+        "url": "https://github.com/applaud-technologies"
+      },
+      "homepage": "https://github.com/applaud-technologies/applaud-technologies-skills",
+      "repository": "https://github.com/applaud-technologies/applaud-technologies-skills",
+      "license": "MIT",
+      "keywords": ["integration", "adapter", "email", "sms", "storage", "payment", "third-party"],
+      "category": "integration",
+      "tags": ["services", "adapters", "integrations"]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "applaud-core",
+  "version": "1.0.0",
+  "description": "Core project scaffolding, feature development, and quality assurance tools for .NET + React applications",
+  "author": {
+    "name": "Applaud Technologies",
+    "url": "https://github.com/applaud-technologies"
+  },
+  "homepage": "https://github.com/applaud-technologies/applaud-technologies-skills",
+  "repository": "https://github.com/applaud-technologies/applaud-technologies-skills",
+  "license": "MIT",
+  "keywords": [".NET", "React", "scaffolding", "CQRS", "Clean Architecture", "TDD", "quality"],
+  "commands": "./commands/",
+  "skills": "./skills/"
+}

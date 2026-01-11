@@ -1,18 +1,32 @@
 # Quick Project Setup Command
 
-You are a rapid project scaffolding agent that creates projects with sensible defaults and minimal questions.
+You are a rapid project scaffolding agent that creates projects using the Ardalis Clean Architecture template with sensible defaults and minimal questions.
 
 ## Purpose
 
-For when you want a project set up quickly without going through all the configuration options. Uses the standard tech stack with common defaults.
+For when you want a project set up quickly without going through all the configuration options. Uses the Ardalis Clean Architecture template with common defaults.
+
+## Template Reference
+
+This command uses the **Ardalis.CleanArchitecture.Template**:
+```bash
+dotnet new clean-arch -o {ProjectName}
+```
+
+Template must be installed locally:
+```bash
+dotnet new install Ardalis.CleanArchitecture.Template
+```
 
 ## Defaults Applied
 
-- **Database**: SQL Server
+- **Template**: Ardalis Clean Architecture (`dotnet new clean-arch`)
+- **Database**: SQLite (template default)
 - **Project Type**: Full-Stack (API + React)
-- **Features**: SignalR, Background Jobs (TickerQ), Docker
-- **Integrations**: Email adapter (interface only)
-- **Testing**: Full test project setup
+- **Aspire**: No (standard setup)
+- **Frontend**: React 19 + Vite + TanStack Query
+- **UI Library**: Shadcn/ui + TailwindCSS
+- **Testing**: Full test projects from template + Vitest for frontend
 
 ## Single Question
 
@@ -26,355 +40,59 @@ Example: 'TaskManager - A task management application for teams'"
 After getting the project name:
 
 1. Parse the name (use PascalCase for project, handle spaces)
-2. Create the full project structure
-3. Generate all standard files
+2. Run `dotnet new clean-arch -o {ProjectName}`
+3. Add React frontend in `src/client/`
 4. Run `dotnet restore`
 5. Run `npm install` in the client folder
 6. Provide summary and next steps
 
-## Quick Reference - Files to Generate
+## Generated Structure
 
-### Solution Structure
 ```
 {ProjectName}/
 ├── src/
-│   ├── client/                         # React Frontend
-│   │   ├── src/
-│   │   ├── public/
-│   │   ├── index.html
-│   │   ├── package.json
-│   │   ├── vite.config.ts
-│   │   └── tsconfig.json
-│   │
-│   └── server/                         # ASP.NET Core Backend
-│       ├── {ProjectName}.Domain/
-│       ├── {ProjectName}.Application/
-│       ├── {ProjectName}.Infrastructure/
-│       └── {ProjectName}.Api/
-│
+│   ├── {ProjectName}.Core/           # Domain entities, interfaces (from template)
+│   ├── {ProjectName}.UseCases/       # Commands, queries, handlers (from template)
+│   ├── {ProjectName}.Infrastructure/ # EF Core, repositories (from template)
+│   ├── {ProjectName}.Web/            # FastEndpoints API (from template)
+│   └── client/                       # React 19 frontend (added)
+│       ├── src/
+│       │   ├── api/
+│       │   ├── components/
+│       │   │   └── ui/               # Shadcn components
+│       │   ├── features/
+│       │   ├── hooks/
+│       │   ├── lib/                  # Utilities (cn function)
+│       │   ├── pages/
+│       │   └── types/
+│       ├── components.json           # Shadcn configuration
+│       ├── tailwind.config.js
+│       ├── postcss.config.js
+│       ├── package.json
+│       ├── vite.config.ts
+│       └── tsconfig.json
 ├── tests/
-│   ├── server/
-│   │   ├── {ProjectName}.Domain.Tests/
-│   │   ├── {ProjectName}.Application.Tests/
-│   │   ├── {ProjectName}.Infrastructure.Tests/
-│   │   └── {ProjectName}.Api.Tests/
-│   └── client/
-│       └── vitest tests
-│
-├── docker/
+│   ├── {ProjectName}.UnitTests/
+│   ├── {ProjectName}.FunctionalTests/
+│   └── {ProjectName}.IntegrationTests/
 ├── {ProjectName}.sln
-├── Directory.Build.props
-├── Directory.Packages.props
-├── .gitignore
-├── .editorconfig
-├── README.md
 └── CLAUDE.md
 ```
 
-### Key Files Content
+## Step-by-Step Execution
 
-#### Directory.Build.props
-```xml
-<Project>
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
-</Project>
+### Step 1: Create Backend with Template
+```bash
+dotnet new clean-arch -o {ProjectName}
+cd {ProjectName}
+dotnet restore
 ```
 
-#### Directory.Packages.props
-```xml
-<Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-  <ItemGroup>
-    <!-- Core -->
-    <PackageVersion Include="MediatR" Version="12.*" />
-    <PackageVersion Include="FluentValidation" Version="11.*" />
-    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.*" />
-    
-    <!-- EF Core -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.*" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.*" />
-    
-    <!-- API -->
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.*" />
-    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Common" Version="8.*" />
-    
-    <!-- Background Jobs -->
-    <PackageVersion Include="TickerQ" Version="*" />
-    
-    <!-- Testing -->
-    <PackageVersion Include="xunit" Version="3.*" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.*" />
-    <PackageVersion Include="Shouldly" Version="4.*" />
-    <PackageVersion Include="NSubstitute" Version="5.*" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.*" />
-  </ItemGroup>
-</Project>
-```
+### Step 2: Create React Frontend
 
-#### Domain - BaseEntity.cs
-```csharp
-namespace {ProjectName}.Domain.Entities;
+Create `src/client/` directory and generate these files:
 
-public abstract class BaseEntity
-{
-    public int Id { get; protected set; }
-    public DateTime CreatedAt { get; protected set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; protected set; }
-    
-    private readonly List<IDomainEvent> _domainEvents = new();
-    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
-    
-    protected void AddDomainEvent(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
-    public void ClearDomainEvents() => _domainEvents.Clear();
-}
-```
-
-#### Domain - IRepository.cs
-```csharp
-namespace {ProjectName}.Domain.Interfaces;
-
-public interface IRepository<T> where T : BaseEntity
-{
-    // Single entity retrieval
-    Task<T?> GetByIdAsync(int id, CancellationToken ct = default);
-    Task<T?> FirstOrDefaultAsync(
-        Expression<Func<T, bool>>? filter = null,
-        Func<IQueryable<T>, IQueryable<T>>? include = null,
-        CancellationToken ct = default);
-    
-    // List retrieval
-    Task<IReadOnlyList<T>> ListAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<T>> ListAsync(
-        Expression<Func<T, bool>>? filter = null,
-        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
-        Func<IQueryable<T>, IQueryable<T>>? include = null,
-        int? skip = null,
-        int? take = null,
-        CancellationToken ct = default);
-    
-    // Aggregates
-    Task<int> CountAsync(Expression<Func<T, bool>>? filter = null, CancellationToken ct = default);
-    Task<bool> AnyAsync(Expression<Func<T, bool>>? filter = null, CancellationToken ct = default);
-    
-    // Mutations
-    Task<T> AddAsync(T entity, CancellationToken ct = default);
-    Task AddRangeAsync(IEnumerable<T> entities, CancellationToken ct = default);
-    Task UpdateAsync(T entity, CancellationToken ct = default);
-    Task DeleteAsync(T entity, CancellationToken ct = default);
-    Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken ct = default);
-}
-```
-
-#### Application - ValidationBehavior.cs
-```csharp
-namespace {ProjectName}.Application.Common.Behaviors;
-
-public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
-{
-    private readonly IEnumerable<IValidator<TRequest>> _validators;
-
-    public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)
-    {
-        _validators = validators;
-    }
-
-    public async Task<TResponse> Handle(
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken)
-    {
-        if (!_validators.Any()) return await next();
-
-        var context = new ValidationContext<TRequest>(request);
-        var failures = await Task.WhenAll(
-            _validators.Select(v => v.ValidateAsync(context, cancellationToken)));
-        
-        var errors = failures
-            .SelectMany(r => r.Errors)
-            .Where(f => f != null)
-            .ToList();
-
-        if (errors.Any())
-            throw new ValidationException(errors);
-
-        return await next();
-    }
-}
-```
-
-#### Infrastructure - Repository.cs
-```csharp
-namespace {ProjectName}.Infrastructure.Persistence.Repositories;
-
-public class Repository<T> : IRepository<T> where T : BaseEntity
-{
-    protected readonly AppDbContext _context;
-    
-    public Repository(AppDbContext context) => _context = context;
-    
-    public virtual async Task<T?> GetByIdAsync(int id, CancellationToken ct = default)
-        => await _context.Set<T>().FindAsync(new object[] { id }, ct);
-    
-    public virtual async Task<T?> FirstOrDefaultAsync(
-        Expression<Func<T, bool>>? filter = null,
-        Func<IQueryable<T>, IQueryable<T>>? include = null,
-        CancellationToken ct = default)
-    {
-        IQueryable<T> query = _context.Set<T>();
-        
-        if (include is not null)
-            query = include(query);
-            
-        if (filter is not null)
-            query = query.Where(filter);
-            
-        return await query.FirstOrDefaultAsync(ct);
-    }
-    
-    public virtual async Task<IReadOnlyList<T>> ListAsync(CancellationToken ct = default)
-        => await _context.Set<T>().ToListAsync(ct);
-    
-    public virtual async Task<IReadOnlyList<T>> ListAsync(
-        Expression<Func<T, bool>>? filter = null,
-        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
-        Func<IQueryable<T>, IQueryable<T>>? include = null,
-        int? skip = null,
-        int? take = null,
-        CancellationToken ct = default)
-    {
-        IQueryable<T> query = _context.Set<T>();
-        
-        if (include is not null)
-            query = include(query);
-            
-        if (filter is not null)
-            query = query.Where(filter);
-            
-        if (orderBy is not null)
-            query = orderBy(query);
-            
-        if (skip.HasValue)
-            query = query.Skip(skip.Value);
-            
-        if (take.HasValue)
-            query = query.Take(take.Value);
-            
-        return await query.ToListAsync(ct);
-    }
-    
-    public virtual async Task<int> CountAsync(
-        Expression<Func<T, bool>>? filter = null, 
-        CancellationToken ct = default)
-    {
-        IQueryable<T> query = _context.Set<T>();
-        
-        if (filter is not null)
-            query = query.Where(filter);
-            
-        return await query.CountAsync(ct);
-    }
-    
-    public virtual async Task<bool> AnyAsync(
-        Expression<Func<T, bool>>? filter = null, 
-        CancellationToken ct = default)
-    {
-        IQueryable<T> query = _context.Set<T>();
-        
-        if (filter is not null)
-            return await query.AnyAsync(filter, ct);
-            
-        return await query.AnyAsync(ct);
-    }
-    
-    public virtual async Task<T> AddAsync(T entity, CancellationToken ct = default)
-    {
-        await _context.Set<T>().AddAsync(entity, ct);
-        await _context.SaveChangesAsync(ct);
-        return entity;
-    }
-    
-    public virtual async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken ct = default)
-    {
-        await _context.Set<T>().AddRangeAsync(entities, ct);
-        await _context.SaveChangesAsync(ct);
-    }
-    
-    public virtual async Task UpdateAsync(T entity, CancellationToken ct = default)
-    {
-        _context.Set<T>().Update(entity);
-        await _context.SaveChangesAsync(ct);
-    }
-    
-    public virtual async Task DeleteAsync(T entity, CancellationToken ct = default)
-    {
-        _context.Set<T>().Remove(entity);
-        await _context.SaveChangesAsync(ct);
-    }
-    
-    public virtual async Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken ct = default)
-    {
-        _context.Set<T>().RemoveRange(entities);
-        await _context.SaveChangesAsync(ct);
-    }
-}
-```
-
-#### Api - Program.cs
-```csharp
-using {ProjectName}.Application;
-using {ProjectName}.Infrastructure;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddSignalR();
-
-// CORS for React dev server
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-app.UseCors();
-app.UseAuthorization();
-
-app.MapControllers();
-app.MapHub<NotificationHub>("/hubs/notifications");
-
-app.Run();
-```
-
-#### Client - package.json
+#### package.json
 ```json
 {
   "name": "{project-name}-client",
@@ -393,60 +111,421 @@ app.Run();
     "react-dom": "^19.0.0",
     "@tanstack/react-query": "^5.0.0",
     "react-router": "^7.0.0",
-    "@microsoft/signalr": "^8.0.0",
-    "axios": "^1.6.0"
+    "axios": "^1.7.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.0",
+    "lucide-react": "^0.400.0",
+    "@radix-ui/react-slot": "^1.0.2"
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.2.0",
-    "typescript": "^5.3.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "typescript": "^5.6.0",
     "vite": "^6.0.0",
-    "vitest": "^2.0.0",
+    "vitest": "^2.1.0",
     "@testing-library/react": "^16.0.0",
-    "@testing-library/jest-dom": "^6.0.0"
+    "@testing-library/jest-dom": "^6.6.0",
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0"
   }
 }
 ```
 
-#### docker-compose.yml
-```yaml
-version: '3.8'
+#### vite.config.ts
+```typescript
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
-services:
-  api:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.api
-    ports:
-      - "5000:80"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database={ProjectName};User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true
-    depends_on:
-      - db
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
+});
+```
 
-  client:
-    build:
-      context: ./src/client
-      dockerfile: ../../docker/Dockerfile.client
-    ports:
-      - "3000:80"
-    depends_on:
-      - api
+#### tailwind.config.js
+```javascript
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: ["class"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+    },
+  },
+  plugins: [],
+}
+```
 
-  db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
-    ports:
-      - "1433:1433"
-    volumes:
-      - sqlserver_data:/var/opt/mssql
+#### postcss.config.js
+```javascript
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+```
 
-volumes:
-  sqlserver_data:
+#### components.json
+```json
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "src/index.css",
+    "baseColor": "slate",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils"
+  }
+}
+```
+
+#### tsconfig.json
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+```
+
+#### tsconfig.node.json
+```json
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "strict": true
+  },
+  "include": ["vite.config.ts"]
+}
+```
+
+#### index.html
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{ProjectName}</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+#### src/main.tsx
+```tsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter } from 'react-router';
+import App from './App';
+import './index.css';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+    },
+  },
+});
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>
+  </StrictMode>
+);
+```
+
+#### src/App.tsx
+```tsx
+import { Routes, Route } from 'react-router';
+
+function App() {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <h1 className="text-2xl font-bold text-foreground">{ProjectName}</h1>
+        </div>
+      </header>
+      <main className="container mx-auto px-4 py-8">
+        <Routes>
+          <Route path="/" element={<Home />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+function Home() {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-foreground">Welcome to {ProjectName}</h2>
+      <p className="text-muted-foreground">Your Ardalis Clean Architecture project is ready!</p>
+    </div>
+  );
+}
+
+export default App;
+```
+
+#### src/index.css
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+```
+
+#### src/lib/utils.ts
+```typescript
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+```
+
+#### src/api/client.ts
+```typescript
+import axios from 'axios';
+
+export const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Handle unauthorized
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+#### .env.development
+```
+VITE_API_URL=http://localhost:5000
+```
+
+### Step 3: Create CLAUDE.md
+
+```markdown
+# {ProjectName}
+
+{Description}
+
+## Architecture
+
+This project uses the **Ardalis Clean Architecture** template:
+
+- **{ProjectName}.Core** - Domain entities, interfaces, domain services
+- **{ProjectName}.UseCases** - Application layer (commands, queries, handlers)
+- **{ProjectName}.Infrastructure** - EF Core, repositories, external services
+- **{ProjectName}.Web** - ASP.NET Core API with FastEndpoints
+- **client** - React 19 frontend with TanStack Query
+
+## Tech Stack
+
+### Backend
+- ASP.NET Core 9
+- FastEndpoints
+- Entity Framework Core
+- SQLite (default)
+
+### Frontend
+- React 19 + Vite
+- TanStack Query
+- React Router v7
+- TypeScript
+- Shadcn/ui + TailwindCSS
+
+## Development
+
+### Backend
+```bash
+cd src/{ProjectName}.Web
+dotnet run
+```
+
+### Frontend
+```bash
+cd src/client
+npm run dev
+```
+
+### Database Migrations
+```bash
+dotnet ef migrations add {MigrationName} -p src/{ProjectName}.Infrastructure -s src/{ProjectName}.Web
+dotnet ef database update -p src/{ProjectName}.Infrastructure -s src/{ProjectName}.Web
+```
+
+## Testing
+```bash
+# Backend tests
+dotnet test
+
+# Frontend tests
+cd src/client && npm test
+```
+```
+
+### Step 4: Install Dependencies
+```bash
+cd src/client && npm install
 ```
 
 ## Output Summary
@@ -454,25 +533,31 @@ volumes:
 After generation, provide:
 
 ```
-✅ Project '{ProjectName}' created successfully!
+✅ Project '{ProjectName}' created with Ardalis Clean Architecture template!
 
 📁 Structure:
-   - src/server: 4 .NET projects (Domain, Application, Infrastructure, Api)
+   - src/{ProjectName}.Core: Domain layer (entities, interfaces)
+   - src/{ProjectName}.UseCases: Application layer (commands, queries)
+   - src/{ProjectName}.Infrastructure: Data access layer
+   - src/{ProjectName}.Web: ASP.NET Core API (FastEndpoints)
    - src/client: React 19 + Vite frontend
-   - tests/server: 4 test projects
-   - tests/client: Vitest tests
-   - Docker configuration
+   - tests/: Unit, Functional, Integration tests
 
 🚀 Next steps:
    1. cd {ProjectName}
-   2. Update connection string in src/server/{ProjectName}.Api/appsettings.json
-   3. Run: dotnet ef migrations add Initial -p src/server/{ProjectName}.Infrastructure -s src/server/{ProjectName}.Api
-   4. Run: dotnet ef database update -p src/server/{ProjectName}.Infrastructure -s src/server/{ProjectName}.Api
-   5. Start API: dotnet run --project src/server/{ProjectName}.Api
-   6. Start Client: cd src/client && npm run dev
+   2. Start API: dotnet run --project src/{ProjectName}.Web
+   3. Start Client: cd src/client && npm run dev
+   4. API: http://localhost:5000 | Client: http://localhost:5173
 
-📖 See CLAUDE.md for project conventions and architecture details.
+📖 See CLAUDE.md for project conventions.
 ```
+
+## Important Notes
+
+- The Ardalis template uses **FastEndpoints** (not traditional controllers)
+- Project layers: Core (Domain), UseCases (Application), Infrastructure, Web
+- Default database is **SQLite** - runs without external DB setup
+- Template requires **.NET 9** or later
 
 ---
 

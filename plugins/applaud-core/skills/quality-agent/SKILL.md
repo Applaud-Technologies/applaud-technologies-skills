@@ -1,28 +1,45 @@
 ---
 name: quality-agent
-description: Performs code quality review and test coverage analysis. Proactively activate after Claude writes significant code changes (new features, refactoring, integration additions). Also activates when user says "review code", "check quality", "audit coverage", "what tests are missing". If test coverage is below 85%, automatically invoke generate-tests skill
+description: Performs code quality review and test coverage analysis for Ardalis Clean Architecture projects. Proactively activate after Claude writes significant code changes (new features, refactoring, integration additions). Also activates when user says "review code", "check quality", "audit coverage", "what tests are missing". If test coverage is below 85%, automatically invoke generate-tests skill
 allowed-tools: Read, Grep, Glob, Bash, LSP
 model: claude-sonnet-4-5-20250929
 ---
 
 # Quality Agent Skill
 
-You are a specialized code quality agent focused on ensuring new or updated code meets quality standards and has adequate test coverage.
+You are a specialized code quality agent focused on ensuring code in Ardalis Clean Architecture projects meets quality standards and has adequate test coverage.
 
 ## Your Role
 
 After features or integrations are added, you:
 1. **Analyze** - Identify what was added or changed
-2. **Review** - Check code quality against established patterns
+2. **Review** - Check code quality against Ardalis Clean Architecture patterns
 3. **Audit** - Assess test coverage gaps
-4. **Generate** - Create missing tests
+4. **Generate** - Create missing tests (invoke generate-tests skill)
 5. **Report** - Provide actionable feedback
+
+## Ardalis Clean Architecture Reference
+
+The project structure follows:
+```
+{Project}/
+├── src/
+│   ├── {Project}.Core/           # Domain layer (entities, interfaces)
+│   ├── {Project}.UseCases/       # Application layer (commands, queries, handlers)
+│   ├── {Project}.Infrastructure/ # Data access, external services
+│   ├── {Project}.Web/            # FastEndpoints API
+│   └── client/                   # React frontend
+└── tests/
+    ├── {Project}.UnitTests/
+    ├── {Project}.FunctionalTests/
+    └── {Project}.IntegrationTests/
+```
 
 ## Activation
 
 Run this agent after:
-- `/user:add-feature` - Review the new feature
-- `/user:add-integration` - Review the new integration
+- `/add-feature` - Review the new feature
+- `/add-integration` - Review the new integration
 - Any manual code additions
 
 ## Phase 1: Discovery
@@ -48,58 +65,112 @@ Ask: "What would you like me to review?
 5. **files:{paths}** - Review specific files"
 
 ### Step 2: Categorize Files
-Group discovered files by type:
-- **Entities** - `src/server/*.Domain/Entities/*.cs`
-- **Commands** - `src/server/*.Application/Features/*/Commands/**/*.cs`
-- **Queries** - `src/server/*.Application/Features/*/Queries/**/*.cs`
-- **Controllers** - `src/server/*.Api/Controllers/*.cs`
-- **Services** - `src/server/*.Infrastructure/Services/**/*.cs`
-- **React Components** - `src/client/src/**/*.tsx`
-- **React Hooks** - `src/client/src/api/*.ts`, `src/client/src/hooks/*.ts`
-- **Tests** - `tests/**/*Tests.cs`, `src/client/**/*.test.ts(x)`
+Group discovered files by layer:
+
+| Layer | Path Pattern |
+|-------|--------------|
+| Core (Domain) | `src/{Project}.Core/**/*.cs` |
+| - Entities | `src/{Project}.Core/*Aggregate/*.cs` |
+| - Interfaces | `src/{Project}.Core/Interfaces/*.cs` |
+| UseCases (Application) | `src/{Project}.UseCases/**/*.cs` |
+| - Commands | `src/{Project}.UseCases/{Feature}/Create/*.cs`, `Update/*.cs`, `Delete/*.cs` |
+| - Queries | `src/{Project}.UseCases/{Feature}/Get/*.cs`, `List/*.cs` |
+| - DTOs | `src/{Project}.UseCases/{Feature}/*Dto.cs` |
+| Infrastructure | `src/{Project}.Infrastructure/**/*.cs` |
+| - Data | `src/{Project}.Infrastructure/Data/**/*.cs` |
+| - Services | `src/{Project}.Infrastructure/Services/**/*.cs` |
+| Web (API) | `src/{Project}.Web/**/*.cs` |
+| - Endpoints | `src/{Project}.Web/{Feature}/*.cs` |
+| Frontend | `src/client/src/**/*.tsx`, `*.ts` |
+| - Components | `src/client/src/features/{feature}/components/*.tsx` |
+| - Hooks | `src/client/src/api/*.ts` |
 
 ## Phase 2: Code Quality Review
 
-### Backend Quality Checklist
+### Core Layer (Domain) Quality Checklist
 
 #### Entity Review
 ```
-□ Inherits from BaseEntity
+□ Inherits from EntityBase and implements IAggregateRoot (if aggregate root)
+□ Uses aggregate folder structure ({Entity}Aggregate/{Entity}.cs)
 □ Has private parameterless constructor for EF Core
-□ Uses factory methods for creation (Create, Update)
+□ Uses constructor for creation with Guard.Against validation
 □ Encapsulates business logic (no anemic entities)
-□ Raises domain events for significant state changes
-□ Properties have appropriate access modifiers
+□ Properties have private setters
+□ Update methods validate with Guard.Against
 □ Nullable reference types handled correctly
+□ Domain events in Events/ subfolder (if applicable)
 ```
+
+#### Interface Review
+```
+□ Repository interface in Core/Interfaces (IRepository<T>)
+□ Uses expression-based filtering parameters
+□ Returns Task-based async methods
+□ Includes CancellationToken parameter
+```
+
+### UseCases Layer (Application) Quality Checklist
 
 #### Command/Query Review
 ```
-□ Single responsibility - one operation per handler
+□ Commands implement ICommand<Result<T>>
+□ Queries implement IQuery<Result<T>>
+□ Handlers implement ICommandHandler<T> or IQueryHandler<T>
+□ Returns Result<T> for success/failure handling (not exceptions for flow control)
 □ Uses IRepository<T>, not DbContext directly
-□ Has corresponding validator (FluentValidation)
-□ Returns appropriate DTO, not entity
+□ Uses expression-based filtering (not Specification classes)
 □ Includes CancellationToken parameter
-□ Handles not-found cases appropriately
-□ Uses Expression-based filtering (not Specification classes)
+□ Handles not-found cases with Result.NotFound()
+□ Handles conflicts with Result.Conflict()
+□ Returns appropriate DTO, not entity
 □ Async methods end with 'Async' suffix
+□ Single responsibility - one operation per handler
 ```
 
-#### Controller Review
+#### DTO Review
 ```
-□ Thin controller - only dispatches to MediatR
-□ Uses appropriate HTTP verbs and routes
-□ Returns proper ActionResult types
-□ Includes [FromQuery], [FromBody], [FromRoute] attributes
-□ Has CancellationToken parameter
-□ Uses CreatedAtAction for POST responses
-□ No business logic in controller
+□ Uses record types for immutability
+□ Placed in UseCases/{Feature}/ folder
+□ Named {Entity}Dto, Create{Entity}Dto, Update{Entity}Dto
+□ No domain logic in DTOs
+```
+
+### Web Layer (API) Quality Checklist
+
+#### FastEndpoint Review
+```
+□ One endpoint per file (Create.cs, GetById.cs, List.cs, etc.)
+□ Inherits from Endpoint<TRequest, TResponse>
+□ Configure() defines route, HTTP method, and auth
+□ Uses Post/Get/Put/Delete appropriately
+□ Injects IMediator for dispatching commands/queries
+□ HandleAsync uses mediator.Send()
+□ Checks result.IsSuccess before sending response
+□ Uses SendCreatedAtAsync for POST with Location header
+□ Uses SendOkAsync for successful GET/PUT
+□ Uses SendNoContentAsync for DELETE
+□ Uses SendNotFoundAsync for not found
+□ Uses SendErrorsAsync for validation failures
+□ Request class has proper validation attributes or FluentValidation
+□ Summary() provides API documentation
+```
+
+### Infrastructure Layer Quality Checklist
+
+#### Repository Review
+```
+□ EfRepository<T> implements IRepository<T>
+□ Uses expression-based filtering
+□ Supports includes via Func<IQueryable<T>, IQueryable<T>>
+□ Supports ordering via Func<IQueryable<T>, IOrderedQueryable<T>>
+□ SaveChangesAsync is called after mutations
 ```
 
 #### Service/Adapter Review
 ```
-□ Implements interface from Application layer
-□ Interface is in Application/Common/Interfaces
+□ Implements interface from Core layer
+□ Interface is in Core/Interfaces
 □ Has Options class for configuration
 □ Logs appropriately (not sensitive data)
 □ Handles external service failures gracefully
@@ -116,11 +187,12 @@ Group discovered files by type:
 □ Handles loading, error, and empty states
 □ No direct API calls - uses custom hooks
 □ Follows naming convention (PascalCase for components)
-□ Separates concerns (container vs presentational)
+□ Located in features/{feature}/components/
 ```
 
 #### React Query Hooks Review
 ```
+□ Located in api/{feature}.ts
 □ Has appropriate query keys
 □ Uses queryClient.invalidateQueries on mutations
 □ Handles optimistic updates where appropriate
@@ -129,33 +201,78 @@ Group discovered files by type:
 □ Exports typed hook functions
 ```
 
+#### State Management Review
+```
+□ Uses React Query for server state (not Redux/Context for API data)
+□ Local UI state uses useState or useReducer appropriately
+□ Form state managed with controlled components or form library
+□ No prop drilling - uses composition or context where appropriate
+□ Derived state computed, not stored
+□ State updates are immutable
+□ No stale closure issues in callbacks/effects
+□ useEffect dependencies are complete and correct
+□ Memoization (useMemo, useCallback) used appropriately for performance
+□ Query cache configured with appropriate staleTime and gcTime
+```
+
+#### Error Handling Review
+```
+□ API errors caught and displayed to user
+□ Error boundaries wrap feature components
+□ Network errors handled gracefully (offline states)
+□ Form validation errors displayed inline
+□ Loading states prevent duplicate submissions
+□ Retry logic for transient failures (React Query handles this)
+□ Error messages are user-friendly (not raw API errors)
+□ Console.error used for developer debugging, not user-facing
+□ Timeout handling for long-running operations
+□ 401/403 errors redirect to login or show permission denied
+□ 404 errors show appropriate "not found" UI
+□ 500 errors show generic error with retry option
+```
+
+#### Accessibility & UX Review
+```
+□ Loading indicators visible during async operations
+□ Disabled states prevent interaction during mutations
+□ Success/failure feedback after form submissions
+□ Confirmation dialogs for destructive actions
+□ Form fields have proper labels and aria attributes
+□ Focus management after modal open/close
+□ Keyboard navigation works correctly
+```
+
 ## Phase 3: Test Coverage Audit
 
 ### Identify Missing Tests
 
 For each source file, check for corresponding test file:
 
-| Source Pattern | Expected Test Pattern |
-|---------------|----------------------|
-| `Features/{F}/Commands/{C}/{C}Handler.cs` | `Features/{F}/Commands/{C}HandlerTests.cs` |
-| `Features/{F}/Queries/{Q}/{Q}Handler.cs` | `Features/{F}/Queries/{Q}HandlerTests.cs` |
-| `Features/{F}/Commands/{C}/{C}Validator.cs` | `Features/{F}/Commands/{C}ValidatorTests.cs` |
-| `Controllers/{X}Controller.cs` | `Controllers/{X}ControllerTests.cs` |
-| `Services/{S}.cs` | `Services/{S}Tests.cs` |
-| `src/features/{f}/components/{C}.tsx` | `src/features/{f}/components/{C}.test.tsx` |
-| `src/api/{a}.ts` | `src/api/{a}.test.ts` |
+| Source Pattern | Test Project | Expected Test Pattern |
+|---------------|--------------|----------------------|
+| `UseCases/{F}/Create/CreateHandler.cs` | UnitTests | `UseCases/{F}/Create/CreateHandlerTests.cs` |
+| `UseCases/{F}/List/ListHandler.cs` | UnitTests | `UseCases/{F}/List/ListHandlerTests.cs` |
+| `UseCases/{F}/Get/GetHandler.cs` | UnitTests | `UseCases/{F}/Get/GetHandlerTests.cs` |
+| `Web/{F}/Create.cs` | FunctionalTests | `{F}/{F}EndpointsTests.cs` |
+| `Web/{F}/List.cs` | FunctionalTests | `{F}/{F}EndpointsTests.cs` |
+| `Infrastructure/Data/EfRepository.cs` | IntegrationTests | `Data/EfRepositoryTests.cs` |
+| `client/src/features/{f}/components/{C}.tsx` | client | `features/{f}/components/{C}.test.tsx` |
+| `client/src/api/{a}.ts` | client | `api/{a}.test.ts` |
 
 ### Coverage Requirements
 
 **Acceptable Coverage Threshold: 85%+**
 
 **Minimum test coverage targets by component:**
-- Command Handlers: 80%+ (test happy path, validation failures, not-found, duplicates)
-- Query Handlers: 70%+ (test filtering, paging, includes)
-- Validators: 90%+ (test each rule)
-- Controllers: 60%+ (integration tests for key flows)
-- React Components: 70%+ (render, user interactions, states)
-- React Hooks: 80%+ (success, error, loading states)
+
+| Component Type | Target | Key Tests |
+|----------------|--------|-----------|
+| Command Handlers | 80%+ | Valid request, validation failures, not-found, conflicts |
+| Query Handlers | 70%+ | Filtering, paging, empty results |
+| FastEndpoints | 70%+ | HTTP status codes, request validation, CRUD operations |
+| Repository | 60%+ | CRUD operations, filtering, paging |
+| React Components | 70%+ | Render, user interactions, loading/error/empty states |
+| React Hooks | 80%+ | Success, error, loading states |
 
 ### Automated Test Generation Trigger
 
@@ -167,7 +284,7 @@ For each source file, check for corresponding test file:
    - **Automatically invoke the `generate-tests` skill** to fill gaps
    - Provide list of uncovered components to generate-tests:
      - Missing test files
-     - Specific handlers/validators/components without tests
+     - Specific handlers/endpoints/components without tests
      - Scenarios not covered by existing tests
    - Wait for test generation to complete
    - Re-run coverage analysis after tests are generated
@@ -183,10 +300,10 @@ Example invocation when coverage is low:
 Coverage analysis complete: 68% (below 85% threshold)
 
 Missing tests for:
-- CreateProductCommandHandler (0% coverage)
-- UpdateProductCommandHandler (0% coverage)
-- GetProductsListQueryHandler (0% coverage)
-- ProductForm.tsx component (0% coverage)
+- CreateProductHandler (0% coverage) → UnitTests
+- ListProductsHandler (0% coverage) → UnitTests
+- ProductEndpoints (0% coverage) → FunctionalTests
+- ProductList.tsx component (0% coverage) → client
 
 Automatically invoking generate-tests skill to create missing tests...
 ```
@@ -198,222 +315,125 @@ Automatically invoking generate-tests skill to create missing tests...
 □ Descriptive test names: {Method}_{Scenario}_{ExpectedResult}
 □ Mocks external dependencies (NSubstitute)
 □ Uses Shouldly for assertions
+□ Tests Result<T> success and failure cases
 □ Tests edge cases and error conditions
 □ No test interdependencies
+□ Uses xUnit [Fact] and [Theory] appropriately
 ```
 
 ## Phase 4: Generate Missing Tests
 
-### Command Handler Test Template
-```csharp
-namespace {Project}.Application.Tests.Features.{Features}.Commands;
+When coverage is below threshold, invoke generate-tests with specific targets.
 
-public class {Command}HandlerTests
+### Unit Test Template (UseCases)
+```csharp
+namespace {Project}.UnitTests.UseCases.{Feature}.Create;
+
+public class Create{Feature}HandlerTests
 {
     private readonly IRepository<{Entity}> _repository;
-    private readonly {Command}Handler _handler;
+    private readonly Create{Feature}Handler _sut;
 
-    public {Command}HandlerTests()
+    public Create{Feature}HandlerTests()
     {
         _repository = Substitute.For<IRepository<{Entity}>>();
-        _handler = new {Command}Handler(_repository);
+        _sut = new Create{Feature}Handler(_repository);
     }
 
     [Fact]
-    public async Task Handle_ValidRequest_Creates{Entity}()
+    public async Task Handle_ValidRequest_ReturnsSuccess()
     {
         // Arrange
-        var command = new {Command}(/* valid params */);
+        var command = new Create{Feature}Command("Test Name", "Description");
         _repository.FirstOrDefaultAsync(
-            Arg.Any<Expression<Func<{Entity}, bool>>>(),
-            Arg.Any<CancellationToken>())
+                Arg.Any<Expression<Func<{Entity}, bool>>>(),
+                Arg.Any<Func<IQueryable<{Entity}>, IQueryable<{Entity}>>>(),
+                Arg.Any<CancellationToken>())
             .Returns((Task<{Entity}?>)null);
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var result = await _sut.Handle(command, CancellationToken.None);
 
         // Assert
-        result.ShouldNotBeNull();
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Name.ShouldBe("Test Name");
         await _repository.Received(1).AddAsync(
-            Arg.Is<{Entity}>(e => e.Name == command.Name),
+            Arg.Is<{Entity}>(e => e.Name == "Test Name"),
             Arg.Any<CancellationToken>());
+        await _repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Handle_DuplicateName_ThrowsConflictException()
+    public async Task Handle_DuplicateName_ReturnsConflict()
     {
         // Arrange
-        var command = new {Command}(/* params */);
-        var existing = {Entity}.Create(/* params */);
+        var command = new Create{Feature}Command("Existing Name", null);
         _repository.FirstOrDefaultAsync(
-            Arg.Any<Expression<Func<{Entity}, bool>>>(),
-            Arg.Any<CancellationToken>())
-            .Returns(existing);
+                Arg.Any<Expression<Func<{Entity}, bool>>>(),
+                Arg.Any<Func<IQueryable<{Entity}>, IQueryable<{Entity}>>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new {Entity}("Existing Name"));
 
-        // Act & Assert
-        await Should.ThrowAsync<ConflictException>(
-            () => _handler.Handle(command, CancellationToken.None));
-    }
+        // Act
+        var result = await _sut.Handle(command, CancellationToken.None);
 
-    [Fact]
-    public async Task Handle_CancellationRequested_ThrowsOperationCanceled()
-    {
-        // Arrange
-        var command = new {Command}(/* params */);
-        var cts = new CancellationTokenSource();
-        cts.Cancel();
-
-        // Act & Assert
-        await Should.ThrowAsync<OperationCanceledException>(
-            () => _handler.Handle(command, cts.Token));
+        // Assert
+        result.IsSuccess.ShouldBeFalse();
+        result.Status.ShouldBe(ResultStatus.Conflict);
+        await _repository.DidNotReceive().AddAsync(Arg.Any<{Entity}>(), Arg.Any<CancellationToken>());
     }
 }
 ```
 
-### Query Handler Test Template
+### Functional Test Template (FastEndpoints)
 ```csharp
-namespace {Project}.Application.Tests.Features.{Features}.Queries;
+namespace {Project}.FunctionalTests.{Feature};
 
-public class {Query}HandlerTests
+public class {Feature}EndpointsTests : IClassFixture<CustomWebApplicationFactory>
 {
-    private readonly IRepository<{Entity}> _repository;
-    private readonly {Query}Handler _handler;
+    private readonly HttpClient _client;
 
-    public {Query}HandlerTests()
+    public {Feature}EndpointsTests(CustomWebApplicationFactory factory)
     {
-        _repository = Substitute.For<IRepository<{Entity}>>();
-        _handler = new {Query}Handler(_repository);
+        _client = factory.CreateClient();
     }
 
     [Fact]
-    public async Task Handle_NoFilter_ReturnsAllItems()
+    public async Task Create{Feature}_ValidRequest_ReturnsCreated()
     {
         // Arrange
-        var items = new List<{Entity}>
-        {
-            {Entity}.Create(/* params */),
-            {Entity}.Create(/* params */)
-        };
-        _repository.ListAsync(
-            Arg.Any<Expression<Func<{Entity}, bool>>>(),
-            Arg.Any<Func<IQueryable<{Entity}>, IOrderedQueryable<{Entity}>>>(),
-            Arg.Any<Func<IQueryable<{Entity}>, IQueryable<{Entity}>>>(),
-            Arg.Any<int?>(),
-            Arg.Any<int?>(),
-            Arg.Any<CancellationToken>())
-            .Returns(items);
-        _repository.CountAsync(
-            Arg.Any<Expression<Func<{Entity}, bool>>>(),
-            Arg.Any<CancellationToken>())
-            .Returns(items.Count);
-
-        var query = new {Query}();
+        var request = new { Name = "Test", Description = "Description" };
 
         // Act
-        var result = await _handler.Handle(query, CancellationToken.None);
+        var response = await _client.PostAsJsonAsync("/{features}", request);
 
         // Assert
-        result.Items.Count.ShouldBe(2);
-        result.TotalCount.ShouldBe(2);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        response.Headers.Location.ShouldNotBeNull();
+
+        var dto = await response.Content.ReadFromJsonAsync<{Feature}Dto>();
+        dto.ShouldNotBeNull();
+        dto.Name.ShouldBe("Test");
     }
 
     [Fact]
-    public async Task Handle_WithSearchTerm_FiltersResults()
+    public async Task Get{Feature}_NonExistent_ReturnsNotFound()
     {
-        // Arrange
-        var query = new {Query}(SearchTerm: "test");
-
         // Act
-        await _handler.Handle(query, CancellationToken.None);
+        var response = await _client.GetAsync("/{features}/99999");
 
         // Assert
-        await _repository.Received(1).ListAsync(
-            Arg.Is<Expression<Func<{Entity}, bool>>>(expr => expr != null),
-            Arg.Any<Func<IQueryable<{Entity}>, IOrderedQueryable<{Entity}>>>(),
-            Arg.Any<Func<IQueryable<{Entity}>, IQueryable<{Entity}>>>(),
-            Arg.Any<int?>(),
-            Arg.Any<int?>(),
-            Arg.Any<CancellationToken>());
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task Handle_WithPaging_AppliesSkipAndTake()
+    public async Task List{Feature}s_ReturnsOk()
     {
-        // Arrange
-        var query = new {Query}(Page: 2, PageSize: 10);
-
         // Act
-        await _handler.Handle(query, CancellationToken.None);
+        var response = await _client.GetAsync("/{features}");
 
         // Assert
-        await _repository.Received(1).ListAsync(
-            Arg.Any<Expression<Func<{Entity}, bool>>>(),
-            Arg.Any<Func<IQueryable<{Entity}>, IOrderedQueryable<{Entity}>>>(),
-            Arg.Any<Func<IQueryable<{Entity}>, IQueryable<{Entity}>>>(),
-            Arg.Is<int?>(skip => skip == 10),
-            Arg.Is<int?>(take => take == 10),
-            Arg.Any<CancellationToken>());
-    }
-}
-```
-
-### Validator Test Template
-```csharp
-namespace {Project}.Application.Tests.Features.{Features}.Commands;
-
-public class {Command}ValidatorTests
-{
-    private readonly {Command}Validator _validator;
-
-    public {Command}ValidatorTests()
-    {
-        _validator = new {Command}Validator();
-    }
-
-    [Fact]
-    public void Validate_ValidCommand_PassesValidation()
-    {
-        // Arrange
-        var command = new {Command}(/* valid params */);
-
-        // Act
-        var result = _validator.Validate(command);
-
-        // Assert
-        result.IsValid.ShouldBeTrue();
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Validate_InvalidName_FailsValidation(string? name)
-    {
-        // Arrange
-        var command = new {Command}(Name: name!, /* other params */);
-
-        // Act
-        var result = _validator.Validate(command);
-
-        // Assert
-        result.IsValid.ShouldBeFalse();
-        result.Errors.ShouldContain(e => e.PropertyName == "Name");
-    }
-
-    [Fact]
-    public void Validate_NameTooLong_FailsValidation()
-    {
-        // Arrange
-        var command = new {Command}(Name: new string('a', 201), /* other params */);
-
-        // Act
-        var result = _validator.Validate(command);
-
-        // Assert
-        result.IsValid.ShouldBeFalse();
-        result.Errors.ShouldContain(e => 
-            e.PropertyName == "Name" && 
-            e.ErrorMessage.Contains("200"));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 }
 ```
@@ -424,7 +444,11 @@ public class {Command}ValidatorTests
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { {Component} } from './{Component}';
+import * as api from '@/api/{feature}';
+
+vi.mock('@/api/{feature}');
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -438,107 +462,43 @@ const createWrapper = () => {
 };
 
 describe('{Component}', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders loading state initially', () => {
+    vi.mocked(api.use{Feature}s).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    } as any);
+
     render(<{Component} />, { wrapper: createWrapper() });
-    
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
   it('renders data when loaded', async () => {
-    render(<{Component} />, { wrapper: createWrapper() });
-    
-    await waitFor(() => {
-      expect(screen.getByText(/expected content/i)).toBeInTheDocument();
-    });
-  });
-
-  it('renders error state on failure', async () => {
-    // Mock API to fail
-    server.use(
-      rest.get('/api/endpoint', (req, res, ctx) => {
-        return res(ctx.status(500));
-      })
-    );
+    vi.mocked(api.use{Feature}s).mockReturnValue({
+      data: [{ id: 1, name: 'Test' }],
+      isLoading: false,
+      error: null,
+    } as any);
 
     render(<{Component} />, { wrapper: createWrapper() });
-    
     await waitFor(() => {
-      expect(screen.getByText(/error/i)).toBeInTheDocument();
+      expect(screen.getByText('Test')).toBeInTheDocument();
     });
   });
 
-  it('handles user interaction', async () => {
-    const user = userEvent.setup();
+  it('renders error state on failure', () => {
+    vi.mocked(api.use{Feature}s).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Failed'),
+    } as any);
+
     render(<{Component} />, { wrapper: createWrapper() });
-    
-    await user.click(screen.getByRole('button', { name: /submit/i }));
-    
-    await waitFor(() => {
-      expect(screen.getByText(/success/i)).toBeInTheDocument();
-    });
-  });
-});
-```
-
-### React Hook Test Template
-```typescript
-// use{Feature}.test.ts
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { use{Feature}s, useCreate{Feature} } from './use{Feature}';
-
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
-};
-
-describe('use{Feature}s', () => {
-  it('fetches {feature}s successfully', async () => {
-    const { result } = renderHook(() => use{Feature}s(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data).toBeDefined();
-  });
-
-  it('handles fetch error', async () => {
-    server.use(
-      rest.get('/api/{features}', (req, res, ctx) => {
-        return res(ctx.status(500));
-      })
-    );
-
-    const { result } = renderHook(() => use{Feature}s(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isError).toBe(true);
-    });
-  });
-});
-
-describe('useCreate{Feature}', () => {
-  it('creates {feature} and invalidates cache', async () => {
-    const { result } = renderHook(() => useCreate{Feature}(), {
-      wrapper: createWrapper(),
-    });
-
-    result.current.mutate({ name: 'Test' });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
+    expect(screen.getByText(/error/i)).toBeInTheDocument();
   });
 });
 ```
@@ -556,6 +516,16 @@ Generate a summary report:
 - **Tests Missing**: {count}
 - **Tests Generated**: {count}
 
+## Architecture Compliance
+
+### Ardalis Clean Architecture
+| Layer | Files | Compliant | Issues |
+|-------|-------|-----------|--------|
+| Core | {n} | {n} | {n} |
+| UseCases | {n} | {n} | {n} |
+| Infrastructure | {n} | {n} | {n} |
+| Web | {n} | {n} | {n} |
+
 ## Code Quality Issues
 
 ### 🔴 Critical
@@ -569,15 +539,15 @@ Generate a summary report:
 
 ## Test Coverage
 
-| Area | Files | Tests | Coverage |
-|------|-------|-------|----------|
-| Commands | {n} | {n} | {%} |
-| Queries | {n} | {n} | {%} |
-| Validators | {n} | {n} | {%} |
-| Components | {n} | {n} | {%} |
+| Area | Project | Files | Tests | Coverage |
+|------|---------|-------|-------|----------|
+| Handlers | UnitTests | {n} | {n} | {%} |
+| Endpoints | FunctionalTests | {n} | {n} | {%} |
+| Repository | IntegrationTests | {n} | {n} | {%} |
+| Components | client | {n} | {n} | {%} |
 
 ## Missing Tests
-- [ ] `{SourceFile}` → needs `{TestFile}`
+- [ ] `{SourceFile}` → `{TestProject}/{TestFile}`
 
 ## Generated Tests
 - ✅ `{TestFile}` - {n} test cases
@@ -586,27 +556,30 @@ Generate a summary report:
 1. Review generated tests and adjust assertions
 2. Fix critical issues before committing
 3. Run `dotnet test` to verify all tests pass
-4. Run `npm test` for frontend tests
+4. Run `cd src/client && npm test` for frontend tests
 ```
 
 ## Execution Flow
 
 1. **Ask what to review** (uncommitted, last commit, specific feature)
-2. **Scan files** and categorize by type
-3. **Review code quality** against checklists
-4. **Audit test coverage** and identify gaps
-5. **Generate missing tests** using templates
+2. **Scan files** and categorize by layer (Core, UseCases, Infrastructure, Web)
+3. **Review code quality** against Ardalis Clean Architecture checklists
+4. **Audit test coverage** across UnitTests, FunctionalTests, IntegrationTests
+5. **Generate missing tests** by invoking generate-tests skill
 6. **Output quality report** with actionable items
 
 ## Automatic Suggestions
 
 After generating tests, suggest:
 ```bash
-# Run backend tests
+# Run all backend tests
+dotnet test
+
+# Run specific feature tests
 dotnet test --filter "FullyQualifiedName~{Feature}"
 
 # Run frontend tests
-cd src/client && npm test -- --grep "{feature}"
+cd src/client && npm test
 
 # Check coverage
 dotnet test --collect:"XPlat Code Coverage"

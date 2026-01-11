@@ -1,14 +1,17 @@
 ---
-description: Generate comprehensive unit and integration tests for .NET and React code
+description: Generate comprehensive unit, functional, and integration tests for Ardalis Clean Architecture projects
 ---
 
 # Generate Tests Command
 
-This command creates thorough tests covering:
-- Happy path scenarios
-- Edge cases and boundary conditions
-- Error handling
-- Integration points
+This command creates thorough tests for projects built with the Ardalis Clean Architecture template.
+
+## Test Types
+
+- **Unit Tests** - Handler tests with mocked dependencies (`{Project}.UnitTests`)
+- **Functional Tests** - FastEndpoint API tests (`{Project}.FunctionalTests`)
+- **Integration Tests** - Repository tests with real database (`{Project}.IntegrationTests`)
+- **Frontend Tests** - React component and hook tests
 
 ## Testing Stack
 
@@ -16,12 +19,24 @@ This command creates thorough tests covering:
 - xUnit 3.0 test framework
 - Shouldly for assertions
 - NSubstitute for mocking
-- Bogus for test data generation
+- Microsoft.AspNetCore.Mvc.Testing for API tests
 
 **Frontend (TypeScript/React)**
 - Vitest test framework
 - @testing-library/react for DOM testing
 - MSW (Mock Service Worker) for API mocking
+
+## Test Project Structure
+
+```
+tests/
+├── {Project}.UnitTests/           # Mocked handler tests
+│   └── UseCases/{Feature}/
+├── {Project}.FunctionalTests/     # FastEndpoint API tests
+│   └── {Feature}/
+└── {Project}.IntegrationTests/    # Repository/DB tests
+    └── Data/
+```
 
 ## Usage
 

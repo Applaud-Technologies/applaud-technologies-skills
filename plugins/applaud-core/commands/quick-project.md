@@ -1,10 +1,12 @@
 # Quick Project Setup Command
 
-You are a rapid project scaffolding agent that creates projects using the Ardalis Clean Architecture template with sensible defaults and minimal questions.
+You are a rapid project scaffolding agent that creates project shells using the Ardalis Clean Architecture template with sensible defaults and minimal questions.
 
 ## Purpose
 
-For when you want a project set up quickly without going through all the configuration options. Uses the Ardalis Clean Architecture template with common defaults.
+For when you want a project shell set up quickly without going through all the configuration options. Uses the Ardalis Clean Architecture template with common defaults.
+
+**Important**: This command creates the project shell only. Use `/add-feature` to add domain entities, endpoints, and UI components after the project is set up.
 
 ## Template Reference
 
@@ -51,20 +53,19 @@ After getting the project name:
 ```
 {ProjectName}/
 ├── src/
-│   ├── {ProjectName}.Core/           # Domain entities, interfaces (from template)
-│   ├── {ProjectName}.UseCases/       # Commands, queries, handlers (from template)
-│   ├── {ProjectName}.Infrastructure/ # EF Core, repositories (from template)
-│   ├── {ProjectName}.Web/            # FastEndpoints API (from template)
-│   └── client/                       # React 19 frontend (added)
+│   ├── {ProjectName}.Core/           # Domain layer (template defaults)
+│   ├── {ProjectName}.UseCases/       # Application layer (template defaults)
+│   ├── {ProjectName}.Infrastructure/ # Data access (template defaults)
+│   ├── {ProjectName}.Web/            # FastEndpoints API (template defaults)
+│   └── client/                       # React 19 frontend shell
 │       ├── src/
-│       │   ├── api/
-│       │   ├── components/
-│       │   │   └── ui/               # Shadcn components
-│       │   ├── features/
-│       │   ├── hooks/
+│       │   ├── api/                  # Empty - add via /add-feature
+│       │   ├── components/           # Empty - add via /add-feature
+│       │   │   └── ui/               # Shadcn components (when added)
+│       │   ├── hooks/                # Empty - add via /add-feature
 │       │   ├── lib/                  # Utilities (cn function)
-│       │   ├── pages/
-│       │   └── types/
+│       │   ├── pages/                # Empty - add via /add-feature
+│       │   └── types/                # Empty - add via /add-feature
 │       ├── components.json           # Shadcn configuration
 │       ├── tailwind.config.js
 │       ├── postcss.config.js
@@ -78,6 +79,8 @@ After getting the project name:
 ├── {ProjectName}.sln
 └── CLAUDE.md
 ```
+
+**Note**: Frontend `src/` subdirectories are created empty with .gitkeep files. Use `/add-feature` to add features.
 
 ## Step-by-Step Execution
 
@@ -327,7 +330,7 @@ createRoot(document.getElementById('root')!).render(
 );
 ```
 
-#### src/App.tsx
+#### src/App.tsx (Shell - no features)
 ```tsx
 import { Routes, Route } from 'react-router';
 
@@ -341,18 +344,10 @@ function App() {
       </header>
       <main className="container mx-auto px-4 py-8">
         <Routes>
-          <Route path="/" element={<Home />} />
+          {/* Add routes via /add-feature */}
+          <Route path="/" element={<div className="text-muted-foreground">Use /add-feature to add pages</div>} />
         </Routes>
       </main>
-    </div>
-  );
-}
-
-function Home() {
-  return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-foreground">Welcome to {ProjectName}</h2>
-      <p className="text-muted-foreground">Your Ardalis Clean Architecture project is ready!</p>
     </div>
   );
 }
@@ -434,7 +429,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 ```
 
-#### src/api/client.ts
+#### src/api/client.ts (Base API client)
 ```typescript
 import axios from 'axios';
 
@@ -445,14 +440,10 @@ export const apiClient = axios.create({
   },
 });
 
+// Add feature-specific interceptors via /add-feature
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 ```
 
@@ -521,6 +512,15 @@ dotnet test
 # Frontend tests
 cd src/client && npm test
 ```
+
+## Adding Features
+
+This is a project shell. Use `/add-feature` to add:
+- Domain entities and aggregates
+- Commands, queries, and handlers
+- FastEndpoints
+- React components and pages
+- Tests
 ```
 
 ### Step 4: Install Dependencies
@@ -533,32 +533,36 @@ cd src/client && npm install
 After generation, provide:
 
 ```
-✅ Project '{ProjectName}' created with Ardalis Clean Architecture template!
+✅ Project '{ProjectName}' shell created with Ardalis Clean Architecture template!
 
 📁 Structure:
-   - src/{ProjectName}.Core: Domain layer (entities, interfaces)
-   - src/{ProjectName}.UseCases: Application layer (commands, queries)
-   - src/{ProjectName}.Infrastructure: Data access layer
-   - src/{ProjectName}.Web: ASP.NET Core API (FastEndpoints)
-   - src/client: React 19 + Vite frontend
-   - tests/: Unit, Functional, Integration tests
+   - src/{ProjectName}.Core: Domain layer (template defaults)
+   - src/{ProjectName}.UseCases: Application layer (template defaults)
+   - src/{ProjectName}.Infrastructure: Data access (template defaults)
+   - src/{ProjectName}.Web: FastEndpoints API (template defaults)
+   - src/client: React frontend shell (empty - add via /add-feature)
+   - tests/: Test projects (template defaults)
 
 🚀 Next steps:
    1. cd {ProjectName}
    2. Start API: dotnet run --project src/{ProjectName}.Web
    3. Start Client: cd src/client && npm run dev
-   4. API: http://localhost:5000 | Client: http://localhost:5173
+   4. Add features: /add-feature {FeatureName}
+
+📍 URLs: API http://localhost:5000 | Client http://localhost:5173
 
 📖 See CLAUDE.md for project conventions.
 ```
 
 ## Important Notes
 
+- This command creates a **project shell only** - no domain entities or features
+- Use `/add-feature` to add domain entities, endpoints, and React components
 - The Ardalis template uses **FastEndpoints** (not traditional controllers)
-- Project layers: Core (Domain), UseCases (Application), Infrastructure, Web
+- Layer naming: `Core` = Domain, `UseCases` = Application
 - Default database is **SQLite** - runs without external DB setup
 - Template requires **.NET 9** or later
 
 ---
 
-**Ask for the project name and description, then immediately generate everything.**
+**Ask for the project name and description, then immediately generate the shell.**

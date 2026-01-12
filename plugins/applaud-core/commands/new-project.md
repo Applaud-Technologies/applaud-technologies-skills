@@ -7,8 +7,10 @@ You are a project scaffolding agent that helps set up new full-stack projects us
 You are an expert .NET and React architect. Your job is to:
 1. Gather requirements through conversation
 2. Use the Ardalis Clean Architecture dotnet template to scaffold the backend
-3. Add a React frontend with proper configuration
-4. Ensure the project follows best practices and is immediately runnable
+3. Add a React frontend shell with proper configuration
+4. Create an empty, runnable project structure ready for features
+
+**Important**: This command creates the project shell only. Use `/add-feature` to add domain entities, endpoints, and UI components after the project is set up.
 
 ## Template Reference
 
@@ -104,13 +106,10 @@ Default: Shadcn/ui + TailwindCSS"
 
 Aspire is great for microservices and cloud deployments."
 
-### Question 6: Additional Frontend Features (if Full-Stack)
-"Which additional frontend features do you need? (comma-separated or 'none')
-- **signalr** - Real-time notifications/updates
-- **auth** - Authentication UI scaffolding
-- **docker** - Docker/Docker Compose setup
-
-Example: 'signalr, docker' or 'none'"
+### Question 6: Docker Support
+"Would you like to include Docker/Docker Compose setup?
+- **Yes** - Adds Dockerfile and docker-compose.yml
+- **No** (default) - Standard setup without Docker"
 
 ## Project Generation Steps
 
@@ -136,8 +135,8 @@ If SQL Server or PostgreSQL was selected:
    - SQL Server: `Microsoft.EntityFrameworkCore.SqlServer`
    - PostgreSQL: `Npgsql.EntityFrameworkCore.PostgreSQL`
 
-### Step 4: Add React Frontend (if Full-Stack)
-Create the frontend structure inside the solution:
+### Step 4: Add React Frontend Shell (if Full-Stack)
+Create the frontend shell structure inside the solution:
 
 ```
 {ProjectName}/
@@ -146,15 +145,15 @@ Create the frontend structure inside the solution:
 │   ├── {ProjectName}.UseCases/
 │   ├── {ProjectName}.Infrastructure/
 │   ├── {ProjectName}.Web/
-│   └── client/                         # ADD: React Frontend
+│   └── client/                         # ADD: React Frontend Shell
 │       ├── src/
-│       │   ├── api/                    # API client, React Query hooks
-│       │   ├── components/
-│       │   ├── features/
-│       │   ├── hooks/
-│       │   ├── lib/
-│       │   ├── pages/
-│       │   └── types/
+│       │   ├── api/                    # Empty - add API clients via /add-feature
+│       │   ├── components/             # Empty - add components via /add-feature
+│       │   │   └── ui/                 # Shadcn components (if selected)
+│       │   ├── hooks/                  # Empty - add hooks via /add-feature
+│       │   ├── lib/                    # Utilities only (cn function for Shadcn)
+│       │   ├── pages/                  # Empty - add pages via /add-feature
+│       │   └── types/                  # Empty - add types via /add-feature
 │       ├── public/
 │       ├── index.html
 │       ├── package.json
@@ -162,6 +161,8 @@ Create the frontend structure inside the solution:
 │       ├── tsconfig.json
 │       └── .env.development
 ```
+
+**Note**: The `src/` subdirectories are created empty (with .gitkeep files). Use `/add-feature` to add domain entities, API endpoints, and React components.
 
 ### Step 5: Generate Frontend Files
 
@@ -474,7 +475,32 @@ createRoot(document.getElementById('root')!).render(
 );
 ```
 
-#### src/api/client.ts
+#### src/App.tsx (Shell - no features)
+```tsx
+import { Routes, Route } from 'react-router';
+
+function App() {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <h1 className="text-2xl font-bold text-foreground">{ProjectName}</h1>
+        </div>
+      </header>
+      <main className="container mx-auto px-4 py-8">
+        <Routes>
+          {/* Add routes via /add-feature */}
+          <Route path="/" element={<div>Use /add-feature to add pages</div>} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+export default App;
+```
+
+#### src/api/client.ts (Base API client)
 ```typescript
 import axios from 'axios';
 
@@ -485,16 +511,10 @@ export const apiClient = axios.create({
   },
 });
 
-// Response interceptor for error handling
+// Add feature-specific interceptors via /add-feature
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Handle common errors
-    if (error.response?.status === 401) {
-      // Handle unauthorized
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 ```
 
@@ -598,6 +618,15 @@ dotnet test
 # Frontend tests
 cd src/client && npm test
 ```
+
+## Adding Features
+
+This is a project shell. Use `/add-feature` to add:
+- Domain entities and aggregates
+- Commands, queries, and handlers
+- FastEndpoints
+- React components and pages
+- Tests
 ```
 
 ### Step 8: Run Setup Commands
@@ -614,35 +643,37 @@ cd src/client && npm install
 After generating, provide this summary:
 
 ```
-✅ Project '{ProjectName}' created successfully using Ardalis Clean Architecture template!
+✅ Project '{ProjectName}' shell created using Ardalis Clean Architecture template!
 
 📁 Structure:
-   - src/{ProjectName}.Core: Domain layer (entities, interfaces)
-   - src/{ProjectName}.UseCases: Application layer (commands, queries, handlers)
-   - src/{ProjectName}.Infrastructure: Data access and external services
-   - src/{ProjectName}.Web: ASP.NET Core API with FastEndpoints
-   - src/client: React 19 + Vite frontend
-   - tests/: Unit, Functional, and Integration test projects
+   - src/{ProjectName}.Core: Domain layer (empty - add entities via /add-feature)
+   - src/{ProjectName}.UseCases: Application layer (empty - add handlers via /add-feature)
+   - src/{ProjectName}.Infrastructure: Data access (template defaults)
+   - src/{ProjectName}.Web: API layer (template defaults)
+   - src/client: React frontend shell (empty - add components via /add-feature)
+   - tests/: Test projects (template defaults)
 
 🚀 Next steps:
    1. cd {ProjectName}
-   2. Review/update connection string in src/{ProjectName}.Web/appsettings.json
-   3. Start API: dotnet run --project src/{ProjectName}.Web
-   4. Start Client: cd src/client && npm run dev
-   5. API runs at: http://localhost:5000
-   6. Client runs at: http://localhost:5173
+   2. Start API: dotnet run --project src/{ProjectName}.Web
+   3. Start Client: cd src/client && npm run dev
+   4. Add features: /add-feature {FeatureName}
 
-📖 See CLAUDE.md for project conventions and commands.
+📍 URLs:
+   - API: http://localhost:5000
+   - Client: http://localhost:5173
+
+📖 See CLAUDE.md for project conventions.
 ```
 
 ## Important Notes
 
+- This command creates a **project shell only** - no domain entities or features
+- Use `/add-feature` to add domain entities, endpoints, and React components
 - The Ardalis template uses **FastEndpoints** instead of traditional controllers
-- The template's project naming differs from traditional Clean Architecture:
-  - `Core` = Domain layer
-  - `UseCases` = Application layer
+- Layer naming: `Core` = Domain, `UseCases` = Application
 - Default database is SQLite - update Infrastructure project if using SQL Server/PostgreSQL
-- The template requires **.NET 9** or later
+- Template requires **.NET 9** or later
 
 ---
 

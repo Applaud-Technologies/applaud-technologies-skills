@@ -1,0 +1,14 @@
+{
+  "name": "applaud-tools",
+  "version": "1.0.0",
+  "description": "General-purpose developer utilities and tools that aren't tied to a specific stack",
+  "author": {
+    "name": "Applaud Technologies",
+    "url": "https://github.com/applaud-technologies"
+  },
+  "homepage": "https://github.com/applaud-technologies/applaud-technologies-skills",
+  "repository": "https://github.com/applaud-technologies/applaud-technologies-skills",
+  "license": "MIT",
+  "keywords": ["tools", "utilities", "browser", "playwright", "demo", "recording", "media"],
+  "skills": "./skills/"
+}

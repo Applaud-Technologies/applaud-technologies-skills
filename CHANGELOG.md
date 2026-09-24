@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### applaud-tools v1.0.0 (new plugin)
+
+General-purpose developer utilities not tied to a specific stack.
+
+**Skills:**
+- `browser-demo-recorder` - Records browser automation as video (webm/mp4) with an animated cursor, on a hidden Xvfb display so the desktop is untouched. For client demos, walkthroughs, and feature-verification recordings. (Ported from an internal workspace skill; adds environment notes for Chrome channel usage and CommonJS Playwright imports.)
+
 ## [1.0.0] - 2026-01-04
 
 ### Added

@@ -41,6 +41,22 @@
       "keywords": ["integration", "adapter", "email", "sms", "storage", "payment", "third-party"],
       "category": "integration",
       "tags": ["services", "adapters", "integrations"]
+    },
+    {
+      "name": "applaud-tools",
+      "source": "./plugins/applaud-tools",
+      "description": "General-purpose developer utilities and tools that aren't tied to a specific stack",
+      "version": "1.0.0",
+      "author": {
+        "name": "Applaud Technologies",
+        "url": "https://github.com/applaud-technologies"
+      },
+      "homepage": "https://github.com/applaud-technologies/applaud-technologies-skills",
+      "repository": "https://github.com/applaud-technologies/applaud-technologies-skills",
+      "license": "MIT",
+      "keywords": ["tools", "utilities", "browser", "playwright", "demo", "recording", "media"],
+      "category": "productivity",
+      "tags": ["tools", "utilities", "media", "recording"]
     }
   ]
 }

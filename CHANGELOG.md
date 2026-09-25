@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### applaud-tools v1.0.1
+
+- `browser-demo-recorder`: bundled script now launches system Chrome (`channel: 'chrome'`) in a persistent kiosk context, so recordings no longer include the tab strip, address bar, or automation infobar, and the page is no longer clipped at the bottom.
+- `browser-demo-recorder`: Playwright is resolved from the working directory (or `PLAYWRIGHT_PATH`) instead of a bare ESM import that always failed from the plugin cache.
+- `browser-demo-recorder`: corrected the frame-luma verification command in `SKILL.md` (`-v error` suppressed its output); wrapper no longer fails on hosts without nvm.
+
 ### Added
 
 #### applaud-tools v1.0.0 (new plugin)

@@ -2,9 +2,33 @@
 /**
  * Record a browser demo with cursor visualization
  * Usage: DISPLAY=:99 node record-browser-demo.mjs
+ *
+ * Playwright is resolved from the current working directory (walking up to
+ * any parent node_modules), or from PLAYWRIGHT_PATH if set.
  */
 
-import { chromium } from 'playwright';
+import { createRequire } from 'module';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
+// Playwright is CommonJS; a bare ESM import resolves from this script's own
+// location (the plugin cache), where it is never installed.
+function loadPlaywright() {
+  const require = createRequire(path.join(process.cwd(), 'noop.js'));
+  for (const id of [process.env.PLAYWRIGHT_PATH, 'playwright'].filter(Boolean)) {
+    try { return require(id); } catch {}
+  }
+  throw new Error(
+    'playwright not found. Run from a directory with node_modules/playwright above it, ' +
+    'or set PLAYWRIGHT_PATH=/abs/path/to/node_modules/playwright'
+  );
+}
+
+const { chromium } = loadPlaywright();
+
+const WIDTH = 1920;
+const HEIGHT = 1080;
 
 // Hide system cursor + inject our custom cursor
 const CURSOR_STYLE = `
@@ -126,19 +150,25 @@ async function moveCursor(page, x, y, duration = 300) {
 async function main() {
   console.log('Launching browser...');
   
-  const browser = await chromium.launch({
+  // Kiosk only takes effect on the first window, which Playwright only exposes
+  // via a persistent context. Dropping --enable-automation removes the
+  // "controlled by automated test software" infobar. viewport: null lets the
+  // page fill the full kiosk window instead of being clipped under it.
+  const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'demo-recorder-'));
+  const context = await chromium.launchPersistentContext(profileDir, {
+    channel: 'chrome',
     headless: false,
+    viewport: null,
+    ignoreDefaultArgs: ['--enable-automation'],
     args: [
-      '--start-maximized',
+      '--kiosk',
+      '--window-position=0,0',
+      `--window-size=${WIDTH},${HEIGHT}`,
       '--cursor=none',  // Try to hide cursor at browser level
     ]
   });
-  
-  const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 }
-  });
-  
-  const page = await context.newPage();
+
+  const page = context.pages()[0] ?? await context.newPage();
   
   // Inject cursor-hiding CSS before navigation
   await page.addInitScript(() => {
@@ -217,7 +247,8 @@ async function main() {
   await page.waitForTimeout(1500);
   
   console.log('Demo complete! Closing browser...');
-  await browser.close();
+  await context.close();
+  fs.rmSync(profileDir, { recursive: true, force: true });
 }
 
 main().catch(console.error);

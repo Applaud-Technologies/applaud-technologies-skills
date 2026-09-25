@@ -45,7 +45,7 @@ sleep 1
 # Run the demo
 echo "🌐 Running browser demo..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source ~/.nvm/nvm.sh
+[ -s ~/.nvm/nvm.sh ] && source ~/.nvm/nvm.sh
 DISPLAY=:$DISPLAY_NUM node "$SCRIPT_DIR/record-browser-demo.mjs"
 
 echo "⏳ Finalizing video..."

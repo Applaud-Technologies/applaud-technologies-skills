@@ -46,7 +46,7 @@
       "name": "applaud-tools",
       "source": "./plugins/applaud-tools",
       "description": "General-purpose developer utilities and tools that aren't tied to a specific stack",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "Applaud Technologies",
         "url": "https://github.com/applaud-technologies"

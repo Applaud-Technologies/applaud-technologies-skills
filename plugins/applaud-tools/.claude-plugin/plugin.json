@@ -1,6 +1,6 @@
 {
   "name": "applaud-tools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "General-purpose developer utilities and tools that aren't tied to a specific stack",
   "author": {
     "name": "Applaud Technologies",

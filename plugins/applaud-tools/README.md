@@ -4,15 +4,22 @@ General-purpose developer utilities and tools that aren't tied to a specific sta
 
 ## Installation
 
+Add the marketplace first, if you haven't already, then install the plugin:
+
 ```bash
+/plugin marketplace add applaud-technologies/applaud-technologies-skills
 /plugin install applaud-tools@applaud-technologies-skills
 ```
 
+This plugin is standalone. It doesn't need `applaud-core`.
+
 ## Requirements
 
-- Linux host with `xvfb` and `ffmpeg`
-- `google-chrome` installed
-- Node.js 20+ with a resolvable `playwright` package
+**Linux only.** The recorder draws to an Xvfb virtual display, so it won't run on macOS or natively on Windows.
+
+- `xvfb` and `ffmpeg`: `sudo apt install xvfb ffmpeg`
+- `google-chrome` (Playwright's bundled Chromium isn't used)
+- Node.js 20+ with Playwright installed in the project you run the recorder from. Otherwise, set `PLAYWRIGHT_PATH=/abs/path/to/node_modules/playwright`. See the skill's `SKILL.md` for why.
 
 ## Skills
 

@@ -4,10 +4,14 @@ Professional .NET and React project scaffolding and development tools for Claude
 
 ## Overview
 
-This marketplace provides two complementary plugins for accelerating full-stack .NET + React development:
+This marketplace provides three plugins. Two work together to speed up full-stack .NET + React development:
 
 - **applaud-core**: Project scaffolding, feature development, and automated quality assurance
 - **applaud-integrations**: Third-party service integration adapters (email, SMS, storage, payments, etc.)
+
+The third is a standalone tool that works with any stack:
+
+- **applaud-tools**: General developer utilities, including a browser demo recorder for client walkthroughs
 
 Built on opinionated architecture patterns including Clean Architecture, CQRS, Repository Pattern, and the Adapter Pattern.
 
@@ -22,11 +26,14 @@ Built on opinionated architecture patterns including Clean Architecture, CQRS, R
 ### Install Plugins
 
 ```bash
-# Install core plugin (required)
+# Install core plugin (required for .NET + React scaffolding)
 /plugin install applaud-core@applaud-technologies-skills
 
 # Install integrations plugin (optional, requires core)
 /plugin install applaud-integrations@applaud-technologies-skills
+
+# Install tools plugin (optional, standalone - does not require core)
+/plugin install applaud-tools@applaud-technologies-skills
 ```
 
 ## Plugins
@@ -74,6 +81,20 @@ Third-party service integration adapters using the Adapter Pattern.
 Requires `applaud-core@applaud-technologies-skills ^1.0.0`
 
 [View detailed documentation →](./plugins/applaud-integrations/README.md)
+
+### applaud-tools
+
+General-purpose developer utilities that aren't tied to a specific stack. Standalone, so it doesn't need applaud-core.
+
+**Proactive Skills:**
+- `browser-demo-recorder` - Records browser automation as a webm/mp4 video with an animated cursor, on a hidden virtual display so your desktop isn't affected. Activates on "record a demo of...", "make a screen recording", etc.
+
+**Requirements (Linux only):**
+- `xvfb` and `ffmpeg`
+- `google-chrome`
+- Node.js 20+ with Playwright installed in the project you run it from (or `PLAYWRIGHT_PATH` set)
+
+[View detailed documentation →](./plugins/applaud-tools/README.md)
 
 ## Quick Start
 
@@ -264,7 +285,7 @@ This marketplace follows [Semantic Versioning](https://semver.org/):
 - **Minor**: New commands/features, new integration adapters
 - **Patch**: Bug fixes, documentation updates
 
-Plugins (applaud-core and applaud-integrations) are versioned independently.
+Each plugin (applaud-core, applaud-integrations, applaud-tools) is versioned independently.
 
 ## License
 
